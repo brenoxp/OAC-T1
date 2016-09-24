@@ -13,6 +13,7 @@
 	INF:   .float -2.0
 	SUP:   .float 2.0
 	UM:    .float 1.0
+	UMCINCO: .float 1.5
 	MENU:	.asciiz "O que deseja realizar?\n1 - F(x) = -x\n2 - F(x)= x^2 + 1\n3 - F(x) = sqrt(x)\n4 - F(x) = (x+1)^2*(x-1)/(x-1.5)\n5 - Símbolo do Batman\n" 
 	PLOT1: .asciiz "Informe o limite inferior.\n"
 	PLOT2: .asciiz "Informe o limite superior.\n"
@@ -37,6 +38,7 @@ MAIN:
 	
 	# Primeiro plota os eixos
 	jal EIXOS
+	jal PLOT
 	
 	# Redirecionando
 	beq $v0, OPCAO1, A
@@ -44,14 +46,10 @@ MAIN:
 	beq $v0, OPCAO3, C
 	beq $v0, OPCAO4, D
 	beq $v0, OPCAO5, E
-	
-	# Usuário inseriu um número diferente do esperado
-	j FIM
 
 
 A:
 
-	jal PLOT
 	# limite inferior = $f3, limite superior = $f4 
 	# calculando um valor que esteja no intervalo
 	jal INTERVALOCALC 
@@ -68,12 +66,14 @@ A:
 	j A
 	
 B:
-	jal PLOT
+
 	# limite inferior = $f3, limite superior = $f4 
 	# calculando um valor que esteja no intervalo
-	jal INTERVALOCALC 
 	
 	# INTERVALOCALC devolve um $f0 no intervalo
+	jal INTERVALOCALC 
+	
+	# FUNCAOB calcula y
 	jal FUNCAOB
 	
 	# Ja temos o y = $f12 e o x = $f0
@@ -85,7 +85,7 @@ B:
 	j B
 	
 C:
-	jal PLOT
+
 	# limite inferior = $f3, limite superior = $f4 
 	# calculando um valor que esteja no intervalo
 	jal INTERVALOCALC 
@@ -102,7 +102,7 @@ C:
 	j C
 	
 D:
-	jal PLOT
+
 	# limite inferior = $f3, limite superior = $f4 
 	# calculando um valor que esteja no intervalo
 	jal INTERVALOCALC 
@@ -126,6 +126,9 @@ E:
 # -x
 FUNCAOA:
 
+	neg.s $f12, $f0
+	jr $ra
+
 # x^2 + 1 
 FUNCAOB:	
 
@@ -137,9 +140,30 @@ FUNCAOB:
 # sqrt(x) 
 FUNCAOC:
 
+	sqrt.s $f12, $f0
+	jr $ra
+
 # (x+1)^2*(x-1)*(x-2)/(x-1.5)
 FUNCAOD:
 	
+	l.s $f1, UM
+	l.s $f2, SUP
+	l.s $f3, UMCINCO
+	# ( x + 1 )^2
+	add.s $f13, $f0, $f1 
+	mul.s $f13, $f13, $f13
+	# (x - 1)
+	sub.s $f14, $f0, $f1
+	# (x - 2)
+	sub.s $f15, $f0, $f2
+	# (x - 1.5)
+	sub.s $f16, $f0, $f3 
+	# (x+1)^2*(x-1)*(x-2)
+	mul.s $f13, $f13, $f14
+	mul.s $f13, $f13, $f15
+	# / 
+	div.s $f12, $f13, $f16
+	jr $ra
 
 PLOT:  
 	
@@ -153,7 +177,7 @@ PLOT:
 	syscall
 
 	# f3 = f0
-	add.s $f3, $f0, $f0 
+	mov.s $f3, $f0
 	
 	# Lê o limite superior
 	li $v0, 4
@@ -164,7 +188,7 @@ PLOT:
 	syscall 
 	
 	# f4 = f0
-	add.s $f4, $f0, $f0 
+	mov.s $f4, $f0
 	
 	# flag de inicio
 	addi $t9, $zero, 0
@@ -184,7 +208,7 @@ INTERVALOCALC:
 	add.s $f5, $f5, $f1
 	mov.s $f0, $f5
 	
-	j FIM
+	jr $ra
 	
 # CHEGOU NO LIMITE INFERIOR
 LINF: 
@@ -203,19 +227,15 @@ LSUP:
 # "FUNÇAO" PLOTA: RECEBE X E Y EM PONTO FLUTUANTE, CALCULA O ENDEREÇO DO PIXEL EM INT E COLOCA NA TELA	
 PLOTPIXELFLOAT:
 	
-	
-	floor.w.s $f0, $f0
-	floor.w.s $f12, $f12 
-	
-	li $v0, 2
-	syscall
-	j FIM 
+	cvt.w.d  $f0, $f0
+	cvt.w.d $f12, $f12 
 	
 	mfc1 $a0, $f0
 	mfc1 $a1, $f12
 	
 	move $t2, $a0
 	move $t3, $a1
+	
 	
 	mul $t3,$t1,$t3   # Y*320
 	add $t3,$t3,$t2   # X+Y*320
