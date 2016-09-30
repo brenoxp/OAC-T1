@@ -1,308 +1,274 @@
 .eqv VGA 0xFF000000
-.eqv NUMX 320
-.eqv NUMY 240
+.eqv TAMX 320
+.eqv TAMY 240
+.eqv H_TAMX 160
+.eqv H_TAMY 120
 .eqv OPCAO1 1
 .eqv OPCAO2 2
 .eqv OPCAO3 3
 .eqv OPCAO4 4
 .eqv OPCAO5 5
 
-
 .data
-
-	INF:   .float -2.0
-	SUP:   .float 2.0
-	UM:    .float 1.0
-	UMCINCO: .float 1.5
-	MENU:	.asciiz "O que deseja realizar?\n1 - F(x) = -x\n2 - F(x)= x^2 + 1\n3 - F(x) = sqrt(x)\n4 - F(x) = (x+1)^2*(x-1)/(x-1.5)\n5 - Símbolo do Batman\n" 
-	PLOT1: .asciiz "Informe o limite inferior.\n"
-	PLOT2: .asciiz "Informe o limite superior.\n"
+	
+	INF:     .float -160.0
+	SUP:     .float  160.0
+	UM:      .float  1.0
+	UMCINCO: .float  1.5
+	Z5: 	.float 0.5
+	ZERO: .float 0.0
+	DOIS: .float 2.0
+	VINTE: .float 20.0
+	CINC3: .float 53.3
+	DSEIS:   .float 16.0
+	SCENTA: .float 60.0
+	OITENTA: .float 80.0
+	QUARENTA: .float 40.0
+	MENU:	 .asciiz "O que deseja realizar?\n1 - F(x) = -x\n2 - F(x)= x^2 + 1\n3 - F(x) = sqrt(x)\n4 - F(x) = (x+1)^2*(x-1)/(x-1.5)\n5 - Símbolo do Batman\n" 
+	PLOT1:   .asciiz "Informe o limite inferior.\n"
+	PLOT2:   .asciiz "Informe o limite superior.\n"
 	
 .text
-
-MAIN:	
+MAIN:
+	
+	# Primeiro plota os eixos
+	jal P_EIXOS
 	
 	# Imprimindo o menu 
 	li $v0, 4
 	la $a0, MENU
 	syscall
 	
-	# Lendo a resposta
+	# Le opcao do usuario
 	li $v0, 5
 	syscall
 	
-	# INICIALIZANDO A TELA VGA
-	la $t0, VGA
-	li $t1, NUMX
-	li $t5,0x55  # cor 0b11000000
+	move $a0,$v0
+	# Retorna ponteiro para a funcao que usario escolheu $v0 = (funcao escolhida)
+	jal CHOOSE_FUNC
 	
-	# Primeiro plota os eixos
-	jal EIXOS
+	move $a2, $v0
 	jal PLOT
 	
-	# Redirecionando
-	beq $v0, OPCAO1, A
-	beq $v0, OPCAO2, B
-	beq $v0, OPCAO3, C
-	beq $v0, OPCAO4, D
-	beq $v0, OPCAO5, E
+	
+	li $v0, 10
+	syscall
 
+# $a0 lim inferior
+# $a1 lim superior
+# $a2 Função
+PLOT: 
+	move $a0, $ra
+	jal PUSH_STACK
 
-A:
+	lwc1 $f0, INF
+	lwc1 $f1, SUP
+	l.s $f10, UM
 
-	# limite inferior = $f3, limite superior = $f4 
-	# calculando um valor que esteja no intervalo
-	jal INTERVALOCALC 
-	
-	# INTERVALOCALC devolve um $f0 no intervalo
-	jal FUNCAOA
-	
-	# Ja temos o y = $f12 e o x = $f0
-	jal PLOTPIXELFLOAT
-	
-	# testamos se ja acabou, caso contrario continua
-	bne $t9, $zero, FIM
-	
-	j A
-	
-B:
+B_PLOT:
+	jalr $a2 # valor da funcao em $f12
 
-	# limite inferior = $f3, limite superior = $f4 
-	# calculando um valor que esteja no intervalo
+	jal FLOAT_TO_INT	# Valor em $v0, Y
+	move $a1, $v0
 	
-	# INTERVALOCALC devolve um $f0 no intervalo
-	jal INTERVALOCALC 
+	mov.s $f12, $f0
+	jal FLOAT_TO_INT
+	move $a0, $v0
 	
-	# FUNCAOB calcula y
-	jal FUNCAOB
+	jal PLOTPIXEL
 	
-	# Ja temos o y = $f12 e o x = $f0
-	jal PLOTPIXELFLOAT
+	add.s $f0, $f0, $f10
+	c.le.s $f1, $f0 # $f1 = lsup , $f0 = x, lsup < x (FLAG = 1) 
+	bc1f B_PLOT # (FLAG = 0) 
 	
-	# testamos se ja acabou, caso contrario continua
-	bne $t9, $zero, FIM
-	
-	j B
-	
-C:
 
-	# limite inferior = $f3, limite superior = $f4 
-	# calculando um valor que esteja no intervalo
-	jal INTERVALOCALC 
-	
-	# INTERVALOCALC devolve um $f0 no intervalo
-	jal FUNCAOC
-	
-	# Ja temos o y = $f12 e o x = $f0
-	jal PLOTPIXELFLOAT
-	
-	# testamos se ja acabou, caso contrario continua
-	bne $t9, $zero, FIM
-	
-	j C
-	
-D:
+	jal POP_STACK
+	jr $v0
 
-	# limite inferior = $f3, limite superior = $f4 
-	# calculando um valor que esteja no intervalo
-	jal INTERVALOCALC 
+# Recebe no $f12 retorna no $v0
+FLOAT_TO_INT:
+	cvt.w.s $f12, $f12
+	mfc1 $v0, $f12
+	jr $ra
 	
-	# INTERVALOCALC devolve um $f0 no intervalo
-	jal FUNCAOD
-	
-	# Ja temos o y = $f12 e o x = $f0
-	jal PLOTPIXELFLOAT
-	
-	# testamos se ja acabou, caso contrario continua
-	bne $t9, $zero, FIM
-	
-	j D
-	
-E:
-	
+CHOOSE_FUNC:
+    	beq $a0,OPCAO1,L_A
+    	beq $a0,OPCAO2,L_B
+    	beq $a0,OPCAO3,L_C
+    	beq $a0,OPCAO4,L_D
+    
+L_A:    la $v0,FUNCAO_A
+    	jr $ra
+    
+L_B:    la $v0,FUNCAO_B
+    	jr $ra
+    
+L_C:    la $v0,FUNCAO_C
+    	jr $ra
+    
+L_D:    la $v0,FUNCAO_D
+    	jr $ra
 
 # DADO O LINF E LSUP, TEMOS QUE PASSAR TODOS OS ELEMENTOS NESTE INTERVALO
 # PARA A FUNCAO E CALCULAR O SEU VALOR Y
 # -x
-FUNCAOA:
-
-	neg.s $f12, $f0
-	jr $ra
+FUNCAO_A:
+	
+    	neg.s $f12, $f0
+    	jr $ra
 
 # x^2 + 1 
-FUNCAOB:	
-
-	l.s $f1,UM
-	mul.s $f12,$f0,$f0
-	add.s $f12,$f12,$f1
-	jr $ra	
+FUNCAO_B:   
+	l.s $f8, OITENTA
+    	l.s $f7,UM
+    	l.s $f9, VINTE
+    	div.s $f12, $f0, $f8
+    	mul.s $f12,$f12,$f12
+    	add.s $f12,$f12,$f7
+    	mul.s $f12, $f12, $f9
+    	jr $ra
 
 # sqrt(x) 
-FUNCAOC:
-
-	sqrt.s $f12, $f0
-	jr $ra
+FUNCAO_C:
+	l.s $f8, DSEIS
+	div.s $f11, $f0, $f8
+    	sqrt.s $f12, $f11
+    	mul.s $f12, $f12, $f8
+    	jr $ra
 
 # (x+1)^2*(x-1)*(x-2)/(x-1.5)
-FUNCAOD:
+FUNCAO_D:
+    	l.s $f7, UM
+    	l.s $f2, SUP
+    	l.s $f3, UMCINCO
+    	l.s $f9, CINC3
+    	l.s $f27, DOIS 
+ 	l.s $f31, Z5
+ 	l.s $f30, ZERO
+ 	l.s $f29, VINTE
+    	div.s $f11, $f0, $f9 
+    	
+    	#funcao 
+    	#r = 0 + 2
+    	add.s $f23, $f30, $f27
+    	# r = r + x
+    	add.s $f23, $f23, $f11
+    	# x^2
+    	mul.s $f24, $f11, $f11
+    	# 3x^2
+    	add.s $f28, $f27, $f7
+    	mul.s $f28, $f28, $f24
+    	# r = r - 3x^2
+    	sub.s $f23, $f23, $f28
+    	# x^3
+    	mul.s $f24, $f11, $f24
+    	# r = r - x^3
+    	sub.s $f23, $f23, $f24
+    	# x^4
+    	mul.s $f24, $f11, $f24
+    	# r = r + x^4	
+    	add.s $f23, $f24, $f23
+    	# x - 1/2 
+    	sub.s $f3, $f11, $f3
+    	# r = r / x - 1/2
+    	div.s $f23, $f23, $f3
+    	
+    	mov.s $f12, $f23
+    	mul.s $f12, $f12, $f29
+    	jr $ra
 	
-	l.s $f1, UM
-	l.s $f2, SUP
-	l.s $f3, UMCINCO
-	# ( x + 1 )^2
-	add.s $f13, $f0, $f1 
-	mul.s $f13, $f13, $f13
-	# (x - 1)
-	sub.s $f14, $f0, $f1
-	# (x - 2)
-	sub.s $f15, $f0, $f2
-	# (x - 1.5)
-	sub.s $f16, $f0, $f3 
-	# (x+1)^2*(x-1)*(x-2)
-	mul.s $f13, $f13, $f14
-	mul.s $f13, $f13, $f15
-	# / 
-	div.s $f12, $f13, $f16
-	jr $ra
+	
+	
+# ------ INICIO PRINT EIXOS ------
+P_EIXOS:
+	move $a0, $ra
+	jal PUSH_STACK
+	
+	jal P_X
+	jal P_Y
+	
+	jal POP_STACK
+	jr $v0
+# ------  FIM PRINT EIXOS ------
 
-PLOT:  
+# ------ INICIO PRINT EIXO X ------
+P_X:	# Imprime x de -TAM_X até +
+	move $a0, $ra
+	jal PUSH_STACK
 	
-	l.s $f1,UM
-	# Lê o limite inferior
-	li $v0, 4
-	la $a0, PLOT1
-	syscall
+	li $a0, H_TAMX
+	neg $a0, $a0
+	li $a1, 0
 	
-	li $v0, 6
-	syscall
+BACK_X: jal PLOTPIXEL
+	addi $a0, $a0, 1
+	blt $a0, H_TAMX, BACK_X
+	
+	jal POP_STACK
+	jr $v0
+# ------  FIM PRINT EIXO X ------
 
-	# f3 = f0
-	mov.s $f3, $f0
+# ------ INICIO PRINT EIXO Y ------
+P_Y:	
+	move $a0, $ra
+	jal PUSH_STACK
 	
-	# Lê o limite superior
-	li $v0, 4
-	la $a0 PLOT2
-	syscall
+	li $a0, 0
+	li $a1, H_TAMY
+	neg $a1, $a1
+	
+BACK_Y: jal PLOTPIXEL
+	addi $a1, $a1, 1
+	blt $a1, H_TAMY, BACK_Y
+	
+	jal POP_STACK
+	jr $v0
+# ------  FIM PRINT EIXO Y ------
+	
 
-	li $v0, 6 
-	syscall 
-	
-	# f4 = f0
-	mov.s $f4, $f0
-	
-	# flag de inicio
-	addi $t9, $zero, 0
-	
-	jr $ra
-	
-INTERVALOCALC:
-	
-	mov.s $f5, $f3
-	
-	c.eq.s 1, $f5,  $f3	
-	bc1t 1, LINF
-	
-	c.le.s 1, $f5, $f4
-	bc1t 1, LSUP
-	
-	add.s $f5, $f5, $f1
-	mov.s $f0, $f5
-	
-	jr $ra
-	
-# CHEGOU NO LIMITE INFERIOR
-LINF: 
-	mov.s $f0, $f3
-	jr $ra
-	
-# CHEGOU NO LIMITE SUPERIOR
-LSUP:
-
-	mov.s $f0, $f4
-	# flag que acabou
-	addi $t9, $zero, 1
-	
-	jr $ra
-	
-# "FUNÇAO" PLOTA: RECEBE X E Y EM PONTO FLUTUANTE, CALCULA O ENDEREÇO DO PIXEL EM INT E COLOCA NA TELA	
-PLOTPIXELFLOAT:
-	
-	cvt.w.d  $f0, $f0
-	cvt.w.d $f12, $f12 
-	
-	mfc1 $a0, $f0
-	mfc1 $a1, $f12
-	
-	move $t2, $a0
-	move $t3, $a1
-	
-	
-	mul $t3,$t1,$t3   # Y*320
-	add $t3,$t3,$t2   # X+Y*320
-	add $t3,$t3,$t0   # Endereco
-	
-	sb $t5, 0($t3)	  # plota o pixel na tela
-	
-	jr $ra
 	
 # "FUNÇAO" PLOTA: RECEBE X E Y, CALCULA O ENDEREÇO DO PIXEL E COLOCA NA TELA
-PLOTPIXEL: 
+PLOTPIXEL:
+	la $t0, VGA
+	li $t1, TAMX
+	li $t5, 0x00  # cor 0b11000000
 
 	move $t2, $a0  # X = $a0
 	move $t3, $a1  # Y = $a1
+	neg $t3, $t3
+	
+	addi $t3,$t3,H_TAMY
 	
 	mul $t3,$t1,$t3   # Y*320
+	
 	add $t3,$t3,$t2   # X+Y*320
+	add $t3,$t3,H_TAMX
+
+	# --- Inicio verifica se esta fora da área do display
+	bge $t3, $zero CONT1
+	jr $ra
+CONT1:
+	li $t4, 768000	# Quantidade de pixels no display
+	ble $t3, $t4, CONT2
+	jr $ra
+CONT2:
+	# --- Fim verifica se esta fora da área do display
+
 	add $t3,$t3,$t0   # Endereco
 	
 	sb $t5, 0($t3)	  # plota o pixel na tela
-	
+
 	jr $ra
 	
-# PLOTA O EIXO X: VAI DO PIXEL (0,119) -> (319, 119) 
-EIXOS: 
+
+# Coloca $a0 na pilha
+PUSH_STACK:
 	addi $sp, $sp, -4
-	sw $ra, 0($sp)
+	sw $a0, 0($sp)
+	jr $ra
 	
-	addi $t6, $zero, 319 
-	addi $t7, $zero, 119 
-	
-	addi $a0, $zero, 0
-	add $a1, $zero, $t7
-	j EIXOXPLOT
-	
-EIXOXPLOT: 
-
-	beq $a0, $t6, EIXOY
-	jal PLOTPIXEL
-	addi $a0, $a0, 1
-	j EIXOXPLOT
-
-# PLOTA O EIXO Y: VAI DO PIXEL (159, 0) -> (159, 239) 
-EIXOY: 
-	addi $t6, $zero, 159
-	addi $t7, $zero, 239
-	
-	add $a0, $zero, $t6  
-	addi $a1, $zero, 0 
-	j EIXOYPLOT
-
-EIXOYPLOT:
-	
-	beq $a1, $t7, VOLTA
-	jal PLOTPIXEL
-	addi $a1, $a1, 1
-	j EIXOYPLOT
-
-VOLTA: 
-	lw $ra, 0($sp)
+# Retorna topo da pilha em $v0
+POP_STACK:
+	lw $v0, 0($sp)
 	addi $sp, $sp, 4
 	jr $ra
-
-
-# ENCERRA O PROGRAMA	
-FIM:
-
-	li $v0, 10
-	syscall
-	
