@@ -9,17 +9,17 @@ tab:	.asciiz "\t"
 .text	
 MAIN:	la $a0,vetor
 	li $a1,N
-	jal show
+	jal show #printa o vetor
 
 	la $a0,vetor
 	li $a1,N
-	jal sort
+	jal sort #chama o SORT
 
-	la $a0,vetor
+	la $a0,vetor #printa o vetor ordenado
 	li $a1,N
 	jal show
 
-	li $v0,10
+	li $v0,10 #tchau
 	syscall	
 
 
@@ -31,17 +31,17 @@ swap:	sll $t1,$a1,2
 	sw $t0,4($t1)
 	jr $ra
 
-sort:	addi $sp,$sp,-20
+sort:	addi $sp,$sp,-20 #aloca pillha
 	sw $ra,16($sp)
 	sw $s3,12($sp)
 	sw $s2,8($sp)
 	sw $s1,4($sp)
-	sw $s0,0($sp)
-	move $s2,$a0
-	move $s3,$a1
-	move $s0,$zero
-for1:	slt $t0,$s0,$s3
-	beq $t0,$zero,exit1
+	sw $s0,0($sp) #guarda uns bagulho na pilha
+	move $s2,$a0 #coloca o vetor em s2
+	move $s3,$a1 #coloca o tamanho do vetor em s3
+	move $s0,$zero #coloca zero em s0 
+for1:	slt $t0,$s0,$s3 # s3 < 0 (tamanho do vetor é menor que 0?)
+	beq $t0,$zero,exit1 #se sim vai pra exit 1
 	addi $s1,$s0,-1
 for2:	slti $t0,$s1,0
 	bne $t0,$zero,exit2
@@ -49,7 +49,7 @@ for2:	slti $t0,$s1,0
 	add $t2,$s2,$t1
 	lw $t3,0($t2)
 	lw $t4,4($t2)
-	slt $t0,$t3,$t4
+	slt $t0,$t4,$t3
 	beq $t0,$zero,exit2
 	move $a0,$s2
 	move $a1,$s1
@@ -62,9 +62,9 @@ exit1: 	lw $s0,0($sp)
 	lw $s1,4($sp)
 	lw $s2,8($sp)
 	lw $s3,12($sp)
-	lw $ra,16($sp)
-	addi $sp,$sp,20
-	jr $ra
+	lw $ra,16($sp) #restaura os valores dos registradores 
+	addi $sp,$sp,20 #desaloca a pilha 
+	jr $ra #volta pra main
 
 
 show:	move $t0,$a0
