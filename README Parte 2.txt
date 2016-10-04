@@ -20,4 +20,4 @@ Em todos os arquivos foram acrescentados o seguinte trecho de código para que o
 Em que é feita uma chamada para a função main, seguindo assim com o enccerramento da simulação através do syscall 10. Foi necessário acrescentar dois nops antes e depois da chamada de funçao, para que fosse operado corretamente. 
 
 Parte 2.3)
-Após a compilação de todos os códigos gerados para cada diretiva, O0, O1, O2, O3 e Os pode-se notar que o compilador gcc é mais veloz, dependendo do nível de otimização da diretiva utilizada. 
+Após a compilação de todos os códigos gerados para cada diretiva, O0, O1, O2, O3 e Os pode-se notar que o compilador gcc é mais veloz, dependendo do nível de otimização da diretiva utilizada. Nos arquivos sortcOriginal.png, sortO0.png, sortO1.png, sortO2.png, sortO3.png, sortOs.png, disponíveis no diretório de imagens é possível ver a quantidade de instruções realizadas por cada código de diretiva gerado, utilizado no simulador MARS. 
