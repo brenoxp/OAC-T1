@@ -113,7 +113,7 @@ sort:
 	addiu	$8,$7,-1
 	addu	$6,$9,$6
 .L11:
-	bltzal	$8,.L10			#Mudado!!!
+	bltzal	$8,.L10
 	addiu	$7,$7,1
 
 	lw	$2,-4($6)
